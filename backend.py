@@ -3,27 +3,37 @@ import json
 from datetime import datetime
 from dotenv import load_dotenv
 from openai import OpenAI
-import streamlit as st  
+import streamlit as st  # Necessário para acessar st.secrets
 
 # Tenta carregar .env local (ignora se não existir)
 load_dotenv()
 
 # Prioriza st.secrets (nuvem) e depois os.getenv (local)
-openai_key = st.secrets.get("OPENAI_API_KEY") if hasattr(st, "secrets") else None
-if not openai_key:
+try:
+    openai_key = st.secrets["OPENAI_API_KEY"]
+except (FileNotFoundError, AttributeError, KeyError):
     openai_key = os.getenv("OPENAI_API_KEY")
 
-bzzoiro_key = st.secrets.get("BZZOIRO_API_KEY") if hasattr(st, "secrets") else None
-if not bzzoiro_key:
-    bzzoiro_key = os.getenv("BZZOIRO_API_KEY")
+if not openai_key:
+    raise ValueError("OPENAI_API_KEY não encontrada. Configure nos Secrets do Streamlit ou no arquivo .env")
 
 client = OpenAI(api_key=openai_key)
 
-os.environ["OPENAI_API_KEY"] = openai_key
-os.environ["BZZOIRO_API_KEY"] = bzzoiro_key
+# As demais funções permanecem iguais, mas vamos garantir que a chave da Bzzoiro também seja carregada
+try:
+    bzzoiro_key = st.secrets["BZZOIRO_API_KEY"]
+except (FileNotFoundError, AttributeError, KeyError):
+    bzzoiro_key = os.getenv("BZZOIRO_API_KEY")
+
+# Opcional: definir variáveis de ambiente para serem usadas por outros módulos (ex: jogos.py)
+if bzzoiro_key:
+    os.environ["BZZOIRO_API_KEY"] = bzzoiro_key
+
+# ========== O RESTO DO SEU CÓDIGO ORIGINAL DO BACKEND.PY A PARTIR DAQUI ==========
+# (incluindo as funções carregar_partidas_do_json, formatar_contexto_partidas, 
+# carregar_prompt, gerar_bilhetes)
 
 def carregar_partidas_do_json():
-    """Carrega os jogos do arquivo gerado pelo jogos.py"""
     try:
         with open("jogos_bzzoiro.json", "r", encoding="utf-8") as f:
             dados = json.load(f)
@@ -32,7 +42,6 @@ def carregar_partidas_do_json():
         return []
 
 def formatar_contexto_partidas(partidas):
-    """Formata as partidas para enviar ao GPT"""
     if not partidas:
         return "Nenhuma partida disponível para hoje."
     texto = "PARTIDAS DE HOJE (dados da Bzzoiro API com odds e previsões ML):\n\n"
@@ -69,7 +78,6 @@ def carregar_prompt(nome_arquivo):
         return f.read()
 
 def gerar_bilhetes(system_prompt, contexto_partidas):
-    """Chama a OpenAI e retorna a resposta em texto"""
     user_message = f"""
 Abaixo estão as partidas de futebol que acontecem HOJE (dados reais da API Bzzoiro).
 
