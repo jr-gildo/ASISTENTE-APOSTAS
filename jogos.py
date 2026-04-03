@@ -1,8 +1,23 @@
+# ========== INSTALAÇÃO AUTOMÁTICA DE DEPENDÊNCIAS ==========
+import subprocess
+import sys
+
+try:
+    import requests
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
+    import requests
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "python-dotenv"])
+    from dotenv import load_dotenv
+
+# ========== CÓDIGO PRINCIPAL ==========
 import os
-import requests
 import json
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -44,11 +59,11 @@ def buscar_partidas_hoje():
         
         return partidas
     except Exception as e:
-        print(f"Falha na requisicao: {e}")
+        print(f"Falha na requisição: {e}")
         return []
 
 def buscar_previsao(event_id):
-    """Busca a previsao ML para um evento especifico"""
+    """Busca a previsão ML para um evento específico"""
     url = f"{BASE_URL}/predictions/"
     params = {"event": event_id}
     try:
@@ -77,7 +92,7 @@ def salvar_jogos():
     with open("jogos_bzzoiro.json", "w", encoding="utf-8") as f:
         json.dump(dados_saida, f, ensure_ascii=False, indent=2)
     
-    # Print sem emoji para evitar erro de encoding no Windows
+    # Print sem emoji para evitar erro de encoding
     print(f"[OK] {len(partidas)} partidas salvas em jogos_bzzoiro.json")
 
 if __name__ == "__main__":
